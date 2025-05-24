@@ -1,21 +1,24 @@
 import { pointFrom } from "@excalidraw/math";
 
-import { ToolButton } from "../components/ToolButton";
-import { done } from "../components/icons";
-import { resetCursor } from "../cursor";
-import { isInvisiblySmallElement } from "../element";
 import {
   maybeBindLinearElement,
   bindOrUnbindLinearElement,
-} from "../element/binding";
-import { LinearElementEditor } from "../element/linearElementEditor";
-import { mutateElement } from "../element/mutateElement";
-import { isBindingElement, isLinearElement } from "../element/typeChecks";
+} from "@excalidraw/element";
+import { LinearElementEditor } from "@excalidraw/element";
+
+import { isBindingElement, isLinearElement } from "@excalidraw/element";
+
+import { KEYS, arrayToMap, updateActiveTool } from "@excalidraw/common";
+import { isPathALoop } from "@excalidraw/element";
+
+import { isInvisiblySmallElement } from "@excalidraw/element";
+
+import { CaptureUpdateAction } from "@excalidraw/element";
+
 import { t } from "../i18n";
-import { KEYS } from "../keys";
-import { isPathALoop } from "../shapes";
-import { CaptureUpdateAction } from "../store";
-import { arrayToMap, updateActiveTool } from "../utils";
+import { resetCursor } from "../cursor";
+import { done } from "../components/icons";
+import { ToolButton } from "../components/ToolButton";
 
 import { register } from "./register";
 
@@ -41,7 +44,6 @@ export const actionFinalize = register({
             element,
             startBindingElement,
             endBindingElement,
-            elementsMap,
             scene,
           );
         }
@@ -67,7 +69,11 @@ export const actionFinalize = register({
       scene.getElement(appState.pendingImageElementId);
 
     if (pendingImageElement) {
-      mutateElement(pendingImageElement, { isDeleted: true }, false);
+      scene.mutateElement(
+        pendingImageElement,
+        { isDeleted: true },
+        { informMutation: false, isDragging: false },
+      );
     }
 
     if (window.document.activeElement instanceof HTMLElement) {
@@ -91,7 +97,7 @@ export const actionFinalize = register({
           !lastCommittedPoint ||
           points[points.length - 1] !== lastCommittedPoint
         ) {
-          mutateElement(multiPointElement, {
+          scene.mutateElement(multiPointElement, {
             points: multiPointElement.points.slice(0, -1),
           });
         }
@@ -115,7 +121,7 @@ export const actionFinalize = register({
         if (isLoop) {
           const linePoints = multiPointElement.points;
           const firstPoint = linePoints[0];
-          mutateElement(multiPointElement, {
+          scene.mutateElement(multiPointElement, {
             points: linePoints.map((p, index) =>
               index === linePoints.length - 1
                 ? pointFrom(firstPoint[0], firstPoint[1])
@@ -135,13 +141,7 @@ export const actionFinalize = register({
           -1,
           arrayToMap(elements),
         );
-        maybeBindLinearElement(
-          multiPointElement,
-          appState,
-          { x, y },
-          elementsMap,
-          elements,
-        );
+        maybeBindLinearElement(multiPointElement, appState, { x, y }, scene);
       }
     }
 
@@ -197,7 +197,10 @@ export const actionFinalize = register({
         // To select the linear element when user has finished mutipoint editing
         selectedLinearElement:
           multiPointElement && isLinearElement(multiPointElement)
-            ? new LinearElementEditor(multiPointElement)
+            ? new LinearElementEditor(
+                multiPointElement,
+                arrayToMap(newElements),
+              )
             : appState.selectedLinearElement,
         pendingImageElementId: null,
       },

@@ -1,8 +1,10 @@
 import type {
   ExcalidrawElement,
   OrderedExcalidrawElement,
-} from "../element/types";
-import type { CaptureUpdateActionType } from "../store";
+} from "@excalidraw/element/types";
+
+import type { CaptureUpdateActionType } from "@excalidraw/element";
+
 import type {
   AppClassProperties,
   AppState,
@@ -138,7 +140,9 @@ export type ActionName =
   | "copyElementLink"
   | "linkToElement"
   | "cropEditor"
-  | "wrapSelectionInFrame";
+  | "wrapSelectionInFrame"
+  | "toggleLassoTool"
+  | "toggleShapeSwitch";
 
 export type PanelComponentProps = {
   elements: readonly ExcalidrawElement[];
@@ -193,7 +197,8 @@ export interface Action {
           | "menu"
           | "collab"
           | "hyperlink"
-          | "search_menu";
+          | "search_menu"
+          | "shape_switch";
         action?: string;
         predicate?: (
           appState: Readonly<AppState>,
